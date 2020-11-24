@@ -39,9 +39,9 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
                       'Train Loss: {:.3f}'.format(running_loss / print_per))
                 running_loss = 0.0
 
-        print('[Epoch {}]'.format(e + 1),
-              'Train Loss: {:.3f}'.format(train_loss / n_train_samples))
         baseline_net_train_loss[e] = train_loss / n_train_samples
+        print('[Epoch {}]'.format(e + 1),
+              'Train Loss: {:.3f}'.format(baseline_net_train_loss[e]))
 
         # Compute validation loss
         val_loss = 0.0
@@ -57,9 +57,9 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
             val_loss += baseline_net_loss.item()
             n_val_samples += 1
 
-        print('[Epoch {}]'.format(e + 1),
-              'Validation Loss: {:.3f}'.format(val_loss / n_val_samples))
         baseline_net_val_loss[e] = val_loss / n_val_samples
+        print('[Epoch {}]'.format(e + 1),
+              'Validation Loss: {:.3f}'.format(baseline_net_val_loss[e]))
 
         # Save best validation loss models
         if baseline_net_val_loss[e] < best_val_loss:
@@ -73,9 +73,11 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
                         'optimizer_state_dict': baseline_optimizer.state_dict(),
                         'loss': baseline_net_train_loss[-1],},
                       model_path)
-        # Stop early if no improvement over early_stopping_epochs
-        elif e + 1 > early_stopping_epochs:
-            if best_val_loss not in baseline_net_val_loss[-early_stopping_epochs:]:
+        # Stop early if no improvement over the last early_stopping_epochs
+        elif (e + 1) >= early_stopping_epochs:
+            start_idx = e - early_stopping_epochs + 1
+            end_idx = e + 1
+            if best_val_loss not in baseline_net_val_loss[start_idx:end_idx]:
                 print('[*] Stopping early at epoch', e + 1)
                 break
     return baseline_net_train_loss, baseline_net_val_loss
@@ -101,10 +103,13 @@ if __name__ == '__main__':
         epochs=1000, model_name='clean', device=device)
 
     plt.figure()
-    trained_epochs = len(baseline_clean_train_loss)
-    plt.plot(range(1, trained_epochs + 1), baseline_clean_train_loss)
-    plt.plot(range(1, trained_epochs + 1), baseline_clean_val_loss)
-    plt.title('Baseline model losses on clean dataset')
+    trained_epochs = len(
+        baseline_clean_train_loss[baseline_clean_train_loss != 0])
+    plt.plot(range(1, trained_epochs + 1),
+             baseline_clean_train_loss[:trained_epochs])
+    plt.plot(range(1, trained_epochs + 1),
+             baseline_clean_val_loss[:trained_epochs])
+    plt.title('Baseline Model Losses / Clean Dataset')
     plt.legend(['Train', 'Validation'])
 
     plt.show()
