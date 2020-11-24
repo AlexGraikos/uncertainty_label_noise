@@ -4,13 +4,13 @@ import torch.optim as optim
 from data import *
 from networks import *
 
-def baseline_train(train_loader, val_loader, epochs, model_name, 
-        early_stopping_epochs=10, print_per=2000):
+def baseline_train(baseline_net, baseline_optimizer, train_loader,
+        val_loader, epochs, model_name, device, early_stopping_epochs=10,
+        print_per=2000):
     best_val_loss = np.inf
     ce_criterion = nn.CrossEntropyLoss()
     baseline_net_train_loss = np.zeros(epochs)
     baseline_net_val_loss = np.zeros(epochs)
-    print_per = 2000
 
     for e in range(epochs):
         print('[Epoch {}]'.format(e + 1))
@@ -95,11 +95,10 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     baseline_net = baseline_net.to(device)
 
-    # Training parameters
-    epochs = 1000
     print('[*] Training on clean dataset...')
     baseline_clean_train_loss, baseline_clean_val_loss = baseline_train(
-        train_loader, val_loader, epochs)
+        baseline_net, baseline_optimizer, train_clean_loader, val_clean_loader,
+        epochs=1000, model_name='clean', device=device)
 
     plt.figure()
     trained_epochs = len(baseline_clean_train_loss)
