@@ -12,8 +12,8 @@ if __name__ == '__main__':
                         metavar='path/to/model.pcap')
     parser.add_argument('model', type=str,
                         help='Model.',
-                        choices=['baseline'],
-                        metavar='<baseline/?>')
+                        choices=['baseline', 'aleatoric'],
+                        metavar='<baseline/aleatoric>')
     args = parser.parse_args()
 
     print('[*] Loading model', args.model, 'from', args.model_path)
@@ -23,6 +23,14 @@ if __name__ == '__main__':
         model = BaselineCNN(in_channels=3, n_classes=10)
         optimizer = optim.Adam(model.parameters(), lr=lr,
                                betas=(0.9, 0.999))
+        criterion = nn.CrossEntropyLoss()
+    elif args.model == 'aleatoric':
+        lr = 0.001
+        model = AleatoricCNN(in_channels=3, n_classes=10)
+        optimizer = optim.Adam(model.parameters(), lr=lr,
+                               betas=(0.9, 0.999))
+        criterion = nn.NLLLoss()
+
     # Load model state
     checkpoint = torch.load(args.model_path, map_location='cpu')
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -38,7 +46,6 @@ if __name__ == '__main__':
     _, _, _, _, test_loader = load_cifar10()
 
     print('[*] Evaluating on test set...')
-    ce_criterion = nn.CrossEntropyLoss()
     test_loss = 0.0
     correct_predictions = 0
     n_test_samples = 0
@@ -48,7 +55,7 @@ if __name__ == '__main__':
 
         # Compute loss/accuracy
         pred_logits = model(images)
-        model_loss = ce_criterion(pred_logits, labels)
+        model_loss = criterion(pred_logits, labels)
         test_loss += model_loss.item()
         with torch.no_grad():
             correct_predictions += (np.argmax(pred_logits.cpu().numpy()[0, :])
