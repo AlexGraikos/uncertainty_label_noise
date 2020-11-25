@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.optim as optim
+import time
 from data import *
 from networks import *
 
@@ -11,12 +12,15 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
     ce_criterion = nn.CrossEntropyLoss()
     baseline_net_train_loss = np.zeros(epochs)
     baseline_net_val_loss = np.zeros(epochs)
+    train_timer = time.time()
 
     for e in range(epochs):
         print('[Epoch {}]'.format(e + 1))
         running_loss = 0.0
         train_loss = 0.0
         n_train_samples = 0
+        epoch_timer = time.time()
+
         # Train over data
         for i, (images, labels) in enumerate(train_loader):
             baseline_net.train()
@@ -25,8 +29,8 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
 
             # Perform training step
             baseline_net.zero_grad()
-            pred_labels = baseline_net(images)
-            baseline_net_loss = ce_criterion(pred_labels, labels)
+            pred_logits = baseline_net(images)
+            baseline_net_loss = ce_criterion(pred_logits, labels)
             baseline_net_loss.backward()
             baseline_optimizer.step()
 
@@ -41,25 +45,29 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
 
         baseline_net_train_loss[e] = train_loss / n_train_samples
         print('[Epoch {}]'.format(e + 1),
-              'Train Loss: {:.3f}'.format(baseline_net_train_loss[e]))
+              'Train Loss: {:.3f}'.format(baseline_net_train_loss[e]),
+              'Time: {:.3f}s'.format(time.time() - epoch_timer))
 
         # Compute validation loss
         val_loss = 0.0
         n_val_samples = 0
+        val_timer = time.time()
+
         for i, (images, labels) in enumerate(val_loader):
             baseline_net.eval()
             images = images.to(device)
             labels = labels.to(device)
 
             # Compute loss
-            pred_labels = baseline_net(images)
-            baseline_net_loss = ce_criterion(pred_labels, labels)
+            pred_logits = baseline_net(images)
+            baseline_net_loss = ce_criterion(pred_logits, labels)
             val_loss += baseline_net_loss.item()
             n_val_samples += 1
 
         baseline_net_val_loss[e] = val_loss / n_val_samples
         print('[Epoch {}]'.format(e + 1),
-              'Validation Loss: {:.3f}'.format(baseline_net_val_loss[e]))
+              'Validation Loss: {:.3f}'.format(baseline_net_val_loss[e]),
+              'Time: {:.3f}s'.format(time.time() - val_timer))
 
         # Save best validation loss models
         if baseline_net_val_loss[e] < best_val_loss:
@@ -80,6 +88,8 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
             if best_val_loss not in baseline_net_val_loss[start_idx:end_idx]:
                 print('[*] Stopping early at epoch', e + 1)
                 break
+
+    print('[*] Total training time: {:.3f}'.format(time.time() - train_timer))
     return baseline_net_train_loss, baseline_net_val_loss
     
 if __name__ == '__main__':
