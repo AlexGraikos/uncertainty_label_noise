@@ -110,7 +110,7 @@ class AleatoricCNN(nn.Module):
         self.avg_pool = nn.AvgPool2d(kernel_size=2 * self.pool_kernel_size,
                                      stride=2 * self.pool_stride)
         self.dense_mean = nn.Linear(128, n_classes)
-        self.dense_std = nn.Linear(128, n_classes)
+        self.dense_var = nn.Linear(128, n_classes)
 
     def forward(self, x):
         x_out = self.conv_block1(x)
@@ -125,13 +125,13 @@ class AleatoricCNN(nn.Module):
         x_out = self.avg_pool(x_out)
         x_out = torch.flatten(x_out, start_dim=1)
         logit_mean = self.dense_mean(x_out)
-        logit_std = F.softplus(self.dense_std(x_out))
+        logit_var = torch.exp(self.dense_var(x_out))
 
         # MC estimation of class probabilities
         logit_mean = logit_mean.unsqueeze(2).repeat((1, 1, self.mc_samples))
-        logit_std = logit_std.unsqueeze(2).repeat((1, 1, self.mc_samples))
+        logit_var = logit_var.unsqueeze(2).repeat((1, 1, self.mc_samples))
         epsilon = torch.randn(logit_mean.size(), device=logit_mean.device)
-        logits = logit_mean + logit_std * epsilon
+        logits = (logit_mean + logit_var * epsilon) / self.temp
         log_probs = torch.mean(F.log_softmax(logits, dim=1), dim=2)
         return log_probs
 

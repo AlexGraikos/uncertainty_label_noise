@@ -54,11 +54,11 @@ if __name__ == '__main__':
         labels = labels.to(device)
 
         # Compute loss/accuracy
-        pred_logits = model(images)
-        model_loss = criterion(pred_logits, labels)
+        output = model(images)
+        model_loss = criterion(output, labels)
         test_loss += model_loss.item()
         with torch.no_grad():
-            correct_predictions += (np.argmax(pred_logits.cpu().numpy()[0, :])
+            correct_predictions += (np.argmax(output.cpu().numpy()[0, :])
                                     == labels.cpu().numpy()[0])
         n_test_samples += 1
 
