@@ -72,7 +72,7 @@ def load_cifar10(plot_samples=False):
     val_clean_loader = torch.utils.data.DataLoader(
         dataset=val_clean_subset, shuffle=False, batch_size=batch_size)
     test_loader = torch.utils.data.DataLoader(
-        test_set, shuffle=False, batch_size=1)
+        test_set, shuffle=False, batch_size=batch_size)
 
     # Plot training clean/noisy batches
     images, labels = iter(train_loader).next()
@@ -85,6 +85,7 @@ def load_cifar10(plot_samples=False):
             img_np = np.transpose(images_clean.numpy()[i, :], (1, 2, 0))
             plt.imshow(img_np / 2 + 0.5)
             plt.title(classes[labels_clean[i]])
+            plt.axis('off')
         plt.suptitle('Clean Dataset')
 
         plt.figure(figsize=(8, 2.5))
@@ -93,6 +94,7 @@ def load_cifar10(plot_samples=False):
             img_np = np.transpose(images.numpy()[i, :], (1, 2, 0))
             plt.imshow(img_np / 2 + 0.5)
             plt.title(classes[labels[i]])
+            plt.axis('off')
         plt.suptitle('Noisy Dataset')
 
     return (train_loader, val_loader,

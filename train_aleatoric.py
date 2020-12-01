@@ -37,10 +37,12 @@ def aleatoric_train(aleatoric_net, aleatoric_optimizer, train_loader,
             # Log loss
             running_loss += aleatoric_net_loss.item()
             train_loss += aleatoric_net_loss.item()
-            n_train_samples += 1
+            n_train_samples += pred_log_probs.shape[0]
             if (i + 1) % print_per == 0:
                 print('[{}, {}]'.format(e + 1, i + 1),
-                      'Train Loss: {:.3f}'.format(running_loss / print_per))
+                      'Train Loss: {:.3f}'.format(running_loss
+                                                 / (print_per
+                                                    * pred_log_probs.shape[0])))
                 running_loss = 0.0
 
         aleatoric_net_train_loss[e] = train_loss / n_train_samples
@@ -62,7 +64,7 @@ def aleatoric_train(aleatoric_net, aleatoric_optimizer, train_loader,
             pred_log_probs = aleatoric_net(images)
             aleatoric_net_loss = nll_criterion(pred_log_probs, labels)
             val_loss += aleatoric_net_loss.item()
-            n_val_samples += 1
+            n_val_samples += pred_log_probs.shape[0]
 
         aleatoric_net_val_loss[e] = val_loss / n_val_samples
         print('[Epoch {}]'.format(e + 1),

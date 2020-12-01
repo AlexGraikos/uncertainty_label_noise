@@ -37,10 +37,12 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
             # Log loss
             running_loss += baseline_net_loss.item()
             train_loss += baseline_net_loss.item()
-            n_train_samples += 1
+            n_train_samples += pred_logits.shape[0]
             if (i + 1) % print_per == 0:
                 print('[{}, {}]'.format(e + 1, i + 1),
-                      'Train Loss: {:.3f}'.format(running_loss / print_per))
+                      'Train Loss: {:.3f}'.format(running_loss
+                                                  / (print_per
+                                                     * pred_logits.shape[0])))
                 running_loss = 0.0
 
         baseline_net_train_loss[e] = train_loss / n_train_samples
@@ -62,7 +64,7 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
             pred_logits = baseline_net(images)
             baseline_net_loss = ce_criterion(pred_logits, labels)
             val_loss += baseline_net_loss.item()
-            n_val_samples += 1
+            n_val_samples += pred_logits.shape[0]
 
         baseline_net_val_loss[e] = val_loss / n_val_samples
         print('[Epoch {}]'.format(e + 1),

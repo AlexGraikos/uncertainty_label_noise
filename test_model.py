@@ -58,9 +58,10 @@ if __name__ == '__main__':
         model_loss = criterion(output, labels)
         test_loss += model_loss.item()
         with torch.no_grad():
-            correct_predictions += (np.argmax(output.cpu().numpy()[0, :])
-                                    == labels.cpu().numpy()[0])
-        n_test_samples += 1
+            correct_predictions += np.sum(
+                np.argmax(output.cpu().numpy(), axis=1) 
+                == labels.cpu().numpy())
+        n_test_samples += labels.shape[0]
 
     accuracy = correct_predictions / n_test_samples
     test_loss = test_loss / n_test_samples

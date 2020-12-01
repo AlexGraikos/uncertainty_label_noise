@@ -125,7 +125,7 @@ class AleatoricCNN(nn.Module):
         x_out = self.avg_pool(x_out)
         x_out = torch.flatten(x_out, start_dim=1)
         logit_mean = self.dense_mean(x_out)
-        logit_var = torch.exp(self.dense_var(x_out))
+        logit_var = F.softplus(self.dense_var(x_out))
 
         # MC estimation of class probabilities
         logit_mean = logit_mean.unsqueeze(2).repeat((1, 1, self.mc_samples))
