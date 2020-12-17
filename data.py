@@ -3,7 +3,8 @@ import torch
 import torchvision
 import matplotlib.pyplot as plt
 
-def load_cifar10(plot_samples=False):
+def load_cifar10(batch_size=4, split_train=True, plot_samples=False,
+        train_shuffle=True):
     # Load CIFAR-10 dataset
     transform = torchvision.transforms.Compose(
         [torchvision.transforms.ToTensor(),
@@ -54,25 +55,49 @@ def load_cifar10(plot_samples=False):
     train_set.targets = train_set_labels_noisy.tolist()
 
     # Split datasets set to train/validation
-    train_subset, val_subset = torch.utils.data.random_split(
-        train_set, [int(0.8 * len(train_set_labels)), 
-                    int(0.2 * len(train_set_labels))])
-    train_clean_subset, val_clean_subset = torch.utils.data.random_split(
-        train_set_clean, [int(0.8 * len(train_set_labels)), 
-                          int(0.2 * len(train_set_labels))])
+    if split_train:
+        if not train_shuffle:
+            randint = np.random.randint(1e9)
+            torch.manual_seed(randint)
+        train_subset, val_subset = torch.utils.data.random_split(
+            train_set, [int(0.8 * len(train_set_labels)), 
+                        int(0.2 * len(train_set_labels))])
 
-    # Create data loaders
-    batch_size = 4
-    train_loader = torch.utils.data.DataLoader(
-        dataset=train_subset, shuffle=True, batch_size=batch_size)
-    val_loader = torch.utils.data.DataLoader(
-        dataset=val_subset, shuffle=False, batch_size=batch_size)
-    train_clean_loader = torch.utils.data.DataLoader(
-        dataset=train_clean_subset, shuffle=True, batch_size=batch_size)
-    val_clean_loader = torch.utils.data.DataLoader(
-        dataset=val_clean_subset, shuffle=False, batch_size=batch_size)
-    test_loader = torch.utils.data.DataLoader(
-        test_set, shuffle=False, batch_size=batch_size)
+        if not train_shuffle:
+            torch.manual_seed(randint)
+        train_clean_subset, val_clean_subset = torch.utils.data.random_split(
+            train_set_clean, [int(0.8 * len(train_set_labels)), 
+                              int(0.2 * len(train_set_labels))])
+
+        # Create data loaders
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_subset, shuffle=train_shuffle, 
+            batch_size=batch_size)
+        val_loader = torch.utils.data.DataLoader(
+            dataset=val_subset, shuffle=False, 
+            batch_size=batch_size)
+        train_clean_loader = torch.utils.data.DataLoader(
+            dataset=train_clean_subset, shuffle=train_shuffle, 
+            batch_size=batch_size)
+        val_clean_loader = torch.utils.data.DataLoader(
+            dataset=val_clean_subset, shuffle=False, 
+            batch_size=batch_size)
+        test_loader = torch.utils.data.DataLoader(
+            test_set, shuffle=False, 
+            batch_size=batch_size)
+    else:
+        # Create data loaders
+        train_loader = torch.utils.data.DataLoader(
+            dataset=train_set, shuffle=train_shuffle, 
+            batch_size=batch_size)
+        train_clean_loader = torch.utils.data.DataLoader(
+            dataset=train_set_clean, shuffle=train_shuffle, 
+            batch_size=batch_size)
+        test_loader = torch.utils.data.DataLoader(
+            test_set, shuffle=False, 
+            batch_size=batch_size)
+        val_loader = None
+        val_clean_loader = None
 
     # Plot training clean/noisy batches
     images, labels = iter(train_loader).next()
@@ -105,5 +130,5 @@ def load_cifar10(plot_samples=False):
 if __name__ == '__main__':
     (train_loader, val_loader,
      train_clean_loader, val_clean_loader,
-     test_loader) = load_cifar10(True)
+     test_loader) = load_cifar10(batch_size=4, plot_samples=True)
     plt.show()

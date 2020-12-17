@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test model.')
     parser.add_argument('model_path', type=str,
                         help='Path to model.',
-                        metavar='path/to/model.pcap')
+                        metavar='path/to/model.pth')
     parser.add_argument('model', type=str,
                         help='Model.',
                         choices=['baseline', 'aleatoric'],
@@ -19,24 +19,15 @@ if __name__ == '__main__':
     print('[*] Loading model', args.model, 'from', args.model_path)
     # Select model
     if args.model == 'baseline':
-        lr = 0.001
         model = BaselineCNN(in_channels=3, n_classes=10)
-        optimizer = optim.Adam(model.parameters(), lr=lr,
-                               betas=(0.9, 0.999))
         criterion = nn.CrossEntropyLoss()
     elif args.model == 'aleatoric':
-        lr = 0.001
         model = AleatoricCNN(in_channels=3, n_classes=10)
-        optimizer = optim.Adam(model.parameters(), lr=lr,
-                               betas=(0.9, 0.999))
         criterion = nn.NLLLoss()
 
     # Load model state
     checkpoint = torch.load(args.model_path, map_location='cpu')
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch = checkpoint['epoch']
-    loss = checkpoint['loss']
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     mode = model.to(device)
     model.eval()

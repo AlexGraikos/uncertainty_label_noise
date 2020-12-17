@@ -1,9 +1,13 @@
+import argparse
 import numpy as np
 import torch
 import torch.optim as optim
 import time
+import matplotlib.pyplot as plt
+import seaborn as sns
 from data import *
 from networks import *
+sns.set()
 
 def baseline_train(baseline_net, baseline_optimizer, train_loader,
         val_loader, epochs, model_name, device, early_stopping_epochs=10,
@@ -95,50 +99,77 @@ def baseline_train(baseline_net, baseline_optimizer, train_loader,
     return baseline_net_train_loss, baseline_net_val_loss
     
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(
+        description='Train the baseline model.')
+    parser.add_argument('model_name', type=str,
+                        help='Model name to use when saving.',
+                        metavar='<model_name>')
+    parser.add_argument('--batch_size', type=int,
+                        help='Train/validation set batch size.',
+                        metavar='<batch_size>',
+                        default=4)
+    parser.add_argument('--skip_clean', action='store_true',
+                        help='Skip training on clean dataset.',
+                        default=False)
+    parser.add_argument('--skip_noisy', action='store_true',
+                        help='Skip training on noisy dataset.',
+                        default=False)
+    args = parser.parse_args()
+    
     # Train baseline CNN on clean and noisy datasets
     print('[*] Loading data...')
+    loader_tuple = load_cifar10(batch_size=args.batch_size)
     (train_loader, val_loader,
-     train_clean_loader, val_clean_loader, _) = load_cifar10()
+     train_clean_loader, val_clean_loader, _) = loader_tuple 
 
-    print('[*] Training on clean dataset...')
-    baseline_net = BaselineCNN(in_channels=3, n_classes=10)
-    lr = 0.001
-    baseline_optimizer = optim.Adam(baseline_net.parameters(), lr=lr,
-                                    betas=(0.9, 0.999))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    baseline_net = baseline_net.to(device)
-    baseline_clean_train_loss, baseline_clean_val_loss = baseline_train(
-        baseline_net, baseline_optimizer, train_clean_loader, val_clean_loader,
-        epochs=1000, model_name='clean', device=device)
+    if not args.skip_clean:
+        print('[*] Training on clean dataset...')
+        baseline_net = BaselineCNN(in_channels=3, n_classes=10)
+        lr = 0.001
+        baseline_optimizer = optim.Adam(baseline_net.parameters(), lr=lr,
+                                        betas=(0.9, 0.999))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        baseline_net = baseline_net.to(device)
+        baseline_clean_train_loss, baseline_clean_val_loss = baseline_train(
+            baseline_net, baseline_optimizer, 
+            train_clean_loader, val_clean_loader,
+            epochs=1000, model_name=(args.model_name + '_clean'), 
+            device=device)
 
-    plt.figure()
-    trained_epochs = len(
-        baseline_clean_train_loss[baseline_clean_train_loss != 0])
-    plt.plot(range(1, trained_epochs + 1),
-             baseline_clean_train_loss[:trained_epochs])
-    plt.plot(range(1, trained_epochs + 1),
-             baseline_clean_val_loss[:trained_epochs])
-    plt.title('Baseline Model Losses - Clean Dataset')
-    plt.legend(['Train', 'Validation'])
+        plt.figure()
+        trained_epochs = len(
+            baseline_clean_train_loss[baseline_clean_train_loss != 0])
+        plt.plot(range(1, trained_epochs + 1),
+                 baseline_clean_train_loss[:trained_epochs])
+        plt.plot(range(1, trained_epochs + 1),
+                 baseline_clean_val_loss[:trained_epochs])
+        plt.title('Baseline Model Losses - Clean Dataset')
+        plt.legend(['Train', 'Validation'])
 
-    print('[*] Training on noisy dataset...')
-    baseline_net = BaselineCNN(in_channels=3, n_classes=10)
-    baseline_optimizer = optim.Adam(baseline_net.parameters(), lr=lr,
-                                    betas=(0.9, 0.999))
-    baseline_net = baseline_net.to(device)
-    baseline_noisy_train_loss, baseline_noisy_val_loss = baseline_train(
-        baseline_net, baseline_optimizer, train_loader, val_loader,
-        epochs=1000, model_name='noisy', device=device)
+    if not args.skip_noisy:
+        print('[*] Training on noisy dataset...')
+        baseline_net = BaselineCNN(in_channels=3, n_classes=10)
+        lr = 0.001
+        baseline_optimizer = optim.Adam(baseline_net.parameters(), lr=lr,
+                                        betas=(0.9, 0.999))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        baseline_net = baseline_net.to(device)
+        baseline_noisy_train_loss, baseline_noisy_val_loss = baseline_train(
+            baseline_net, baseline_optimizer, 
+            train_loader, val_loader,
+            epochs=1000, model_name=(args.model_name + '_noisy'), 
+            device=device)
 
-    plt.figure()
-    trained_epochs = len(
-        baseline_noisy_train_loss[baseline_noisy_train_loss != 0])
-    plt.plot(range(1, trained_epochs + 1),
-             baseline_noisy_train_loss[:trained_epochs])
-    plt.plot(range(1, trained_epochs + 1),
-             baseline_noisy_val_loss[:trained_epochs])
-    plt.title('Baseline Model Losses - Noisy Dataset')
-    plt.legend(['Train', 'Validation'])
+        plt.figure()
+        trained_epochs = len(
+            baseline_noisy_train_loss[baseline_noisy_train_loss != 0])
+        plt.plot(range(1, trained_epochs + 1),
+                 baseline_noisy_train_loss[:trained_epochs])
+        plt.plot(range(1, trained_epochs + 1),
+                 baseline_noisy_val_loss[:trained_epochs])
+        plt.title('Baseline Model Losses - Noisy Dataset')
+        plt.legend(['Train', 'Validation'])
 
     plt.show()
 

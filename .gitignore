@@ -1,5 +1,6 @@
 datasets/*
 models/*
 *.pyc
+*.npz
 
 !*.gitkeep

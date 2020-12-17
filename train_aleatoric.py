@@ -1,9 +1,13 @@
+import argparse
 import numpy as np
 import torch
 import torch.optim as optim
 import time
+import matplotlib.pyplot as plt
+import seaborn as sns
 from data import *
 from networks import *
+sns.set()
 
 def aleatoric_train(aleatoric_net, aleatoric_optimizer, train_loader,
         val_loader, epochs, model_name, device, early_stopping_epochs=10,
@@ -95,52 +99,89 @@ def aleatoric_train(aleatoric_net, aleatoric_optimizer, train_loader,
     return aleatoric_net_train_loss, aleatoric_net_val_loss
     
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(
+        description='Train the aleatoric uncertainty model.')
+    parser.add_argument('model_name', type=str,
+                        help='Model name to use when saving.',
+                        metavar='<model_name>')
+    parser.add_argument('--batch_size', type=int,
+                        help='Train/validation set batch size.',
+                        metavar='<batch_size>',
+                        default=4)
+    parser.add_argument('--logit_mc_samples', type=int,
+                        help='Number of MC samples for logit expectation.',
+                        metavar='<mc_samples>',
+                        default=1000)
+    parser.add_argument('--temperature', type=float,
+                        help='Softmax temperature parameter.',
+                        metavar='<temp>',
+                        default=1.0)
+    parser.add_argument('--skip_clean', action='store_true',
+                        help='Skip training on clean dataset.',
+                        default=False)
+    parser.add_argument('--skip_noisy', action='store_true',
+                        help='Skip training on noisy dataset.',
+                        default=False)
+    args = parser.parse_args()
+
     # Train aleatoric CNN on clean and noisy datasets
     print('[*] Loading data...')
+    loader_tuple = load_cifar10(batch_size=args.batch_size)
     (train_loader, val_loader,
-     train_clean_loader, val_clean_loader, _) = load_cifar10()
+     train_clean_loader, val_clean_loader, _) = loader_tuple 
 
-    print('[*] Training on clean dataset...')
-    aleatoric_net = AleatoricCNN(in_channels=3, n_classes=10, mc_samples=1000,
-                                 temp=1.0)
-    lr = 0.001
-    aleatoric_optimizer = optim.Adam(aleatoric_net.parameters(), lr=lr,
-                                     betas=(0.9, 0.999))
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    aleatoric_net = aleatoric_net.to(device)
-    aleatoric_clean_train_loss, aleatoric_clean_val_loss = aleatoric_train(
-        aleatoric_net, aleatoric_optimizer, train_clean_loader, val_clean_loader,
-        epochs=1000, model_name='clean', device=device)
+    if not args.skip_clean:
+        print('[*] Training on clean dataset...')
+        aleatoric_net = AleatoricCNN(in_channels=3, n_classes=10, 
+                                     mc_samples=args.logit_mc_samples,
+                                     temp=args.temperature)
+        lr = 0.001
+        aleatoric_optimizer = optim.Adam(aleatoric_net.parameters(), lr=lr,
+                                         betas=(0.9, 0.999))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        aleatoric_net = aleatoric_net.to(device)
+        aleatoric_clean_train_loss, aleatoric_clean_val_loss = aleatoric_train(
+            aleatoric_net, aleatoric_optimizer, 
+            train_clean_loader, val_clean_loader,
+            epochs=1000, model_name=(args.model_name + '_clean'), 
+            device=device)
 
-    plt.figure()
-    trained_epochs = len(
-        aleatoric_clean_train_loss[aleatoric_clean_train_loss != 0])
-    plt.plot(range(1, trained_epochs + 1),
-             aleatoric_clean_train_loss[:trained_epochs])
-    plt.plot(range(1, trained_epochs + 1),
-             aleatoric_clean_val_loss[:trained_epochs])
-    plt.title('Aleatoric Model Losses - Clean Dataset')
-    plt.legend(['Train', 'Validation'])
+        plt.figure()
+        trained_epochs = len(
+            aleatoric_clean_train_loss[aleatoric_clean_train_loss != 0])
+        plt.plot(range(1, trained_epochs + 1),
+                 aleatoric_clean_train_loss[:trained_epochs])
+        plt.plot(range(1, trained_epochs + 1),
+                 aleatoric_clean_val_loss[:trained_epochs])
+        plt.title('Aleatoric Model Losses - Clean Dataset')
+        plt.legend(['Train', 'Validation'])
 
-    print('[*] Training on noisy dataset...')
-    aleatoric_net = AleatoricCNN(in_channels=3, n_classes=10, mc_samples=1000,
-                                 temp=1.0)
-    aleatoric_optimizer = optim.Adam(aleatoric_net.parameters(), lr=lr,
-                                     betas=(0.9, 0.999))
-    aleatoric_net = aleatoric_net.to(device)
-    aleatoric_noisy_train_loss, aleatoric_noisy_val_loss = aleatoric_train(
-        aleatoric_net, aleatoric_optimizer, train_loader, val_loader,
-        epochs=1000, model_name='noisy', device=device)
+    if not args.skip_noisy:
+        print('[*] Training on noisy dataset...')
+        aleatoric_net = AleatoricCNN(in_channels=3, n_classes=10, 
+                                     mc_samples=args.logit_mc_samples,
+                                     temp=args.temperature)
+        lr = 0.001
+        aleatoric_optimizer = optim.Adam(aleatoric_net.parameters(), lr=lr,
+                                         betas=(0.9, 0.999))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        aleatoric_net = aleatoric_net.to(device)
+        aleatoric_noisy_train_loss, aleatoric_noisy_val_loss = aleatoric_train(
+            aleatoric_net, aleatoric_optimizer, 
+            train_loader, val_loader,
+            epochs=1000, model_name=(args.model_name + '_noisy'), 
+            device=device)
 
-    plt.figure()
-    trained_epochs = len(
-        aleatoric_noisy_train_loss[aleatoric_noisy_train_loss != 0])
-    plt.plot(range(1, trained_epochs + 1),
-             aleatoric_noisy_train_loss[:trained_epochs])
-    plt.plot(range(1, trained_epochs + 1),
-             aleatoric_noisy_val_loss[:trained_epochs])
-    plt.title('Aleatoric Model Losses - Noisy Dataset')
-    plt.legend(['Train', 'Validation'])
+        plt.figure()
+        trained_epochs = len(
+            aleatoric_noisy_train_loss[aleatoric_noisy_train_loss != 0])
+        plt.plot(range(1, trained_epochs + 1),
+                 aleatoric_noisy_train_loss[:trained_epochs])
+        plt.plot(range(1, trained_epochs + 1),
+                 aleatoric_noisy_val_loss[:trained_epochs])
+        plt.title('Aleatoric Model Losses - Noisy Dataset')
+        plt.legend(['Train', 'Validation'])
 
     plt.show()
 
