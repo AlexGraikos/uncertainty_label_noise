@@ -7,7 +7,7 @@ The predicted uncertainty and loss values for the trained model can be utilized 
 
 <img src="./results/figs/uncertainty_loss.png" width="400" /> <img src="./results/figs/clustering_noisy.png" width="400" />
 
-Experiments were performed on the CIFAR-10 dataset where the noisy to clean sample ratio was reduced from 0.21 -> 0.13.
+Experiments were performed on the CIFAR-10 dataset with synthetic noise, where the noisy to clean sample ratio was reduced from 0.21 -> 0.13.
 
 References: 
 - [1] M. Collier, B. Mustafa, E. Kokiopoulou, and J. Berent. Analysis of softmax approxi-
